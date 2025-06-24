@@ -1,47 +1,14 @@
 
-# use the high growth rate for Baranyi model -> curve more similar to others
-
-rm(list = ls())
-set.seed(1)
-blank.constant = 5*10^6
-
-library(ggplot2)
-library(deSolve)
-library(DEoptim)
-library(dplyr)
-library(miLAG)
-library(tidyr)
-library(scales)
-
-
-# Monika:
-#THIS_PROJECT_PATH = "C:/Users/monik/Documents/_PROJEKTY i LAB/_2024 - LAG - PART 2/"
-#OUTPUT_FIGS_PATH =sprintf("%soutput/2024.08.28 - figs and data/", THIS_PROJECT_PATH) 
-#source(sprintf("%scode/in_silico analysis/lags_helper.R", THIS_PROJECT_PATH))
-# Bogna
-THIS_PROJECT_PATH = "/Users/bsmug/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/" 
-OUTPUT_FIGS_PATH =sprintf("%soutput/Figures_2025_01_27/", THIS_PROJECT_PATH) 
-source(sprintf("%scode/in_silico analysis/2024-09/lags_helper.R", THIS_PROJECT_PATH))
-# debug: 
-# source("~/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/code/in_silico analysis/2024-02/milags_functions.R")
-
-
-dir.create(OUTPUT_FIGS_PATH)
-EXPERIMENTAL.DATA.PATH = sprintf("%sexperimental data/", THIS_PROJECT_PATH)
-NOLAG.DATA.PATH = sprintf("%sexperimental data/BY_a_lag_data.txt", THIS_PROJECT_PATH)
-
-
-# GLOBAL PARAMS
-biomass.increase.threshold = 10^3
 
 # Figure 1: simulated data without any noise
 # general params
-Max.Time = 24
+source("~/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/code/lag_calc_methods_comparison/0.config.R")
 time.interval = 0.1
 times = seq(0,Max.Time,time.interval)
 lag = 2.5
 growth.rate = 0.1
 K = 5*10^6
+
 
 # logistic model params
 growth.rate.logistic = 0.25
@@ -60,16 +27,6 @@ byranayi_and_roberts.simulated.data.raw = data.frame(time = times,
                                                        mumax =  growth.rate, 
                                                        LOG10N0 = log10(N0), 
                                                        lag = lag))
-
-# TODO: use this instead of the other?
-#byranayi_and_roberts.simulated.data.high.gr = data.frame(time = times, 
-#                                                         biomass = Baranyi.Solution(
-#                                                           times, 
-#                                                           LOG10Nmax =   log10(K), 
-#                                                           mumax =  coef(nlsmod)[names(coef(nlsmod)) == "mumax"] %>% as.numeric(), 
-#                                                           LOG10N0 = log10(N0), 
-#                                                           lag = lag))
-
 logistic.simulated.data = Simulate.Logistic.With.Lag(N0, growth.rate.logistic, K, lag, times)
 monod.simulated.data = Simulate.Monod.With.Lag(a = a,Vh=Vh,Kh=Kh, N0=N0,G0=13.9, lag=lag, times=times)
 exponential.growth.simulated.data = Simulate.Exponential.Data.With.Lag(N0, growth.rate, lag, times)
@@ -77,7 +34,6 @@ exponential.growth.simulated.data = Simulate.Exponential.Data.With.Lag(N0, growt
 
 all.simulated.data =
   rbind(byranayi_and_roberts.simulated.data.raw %>% mutate(curve_id = "Baranyi&Roberts"),
-        # byranayi_and_roberts.simulated.data.high.gr %>% mutate(curve_id = "Baranyi.and.Roberts:\nhigh growth rate"),
         logistic.simulated.data %>% mutate(curve_id = "Logistic"),
         monod.simulated.data %>% mutate(curve_id = "Monod"),
         exponential.growth.simulated.data %>% select(time, biomass) %>% mutate(curve_id = "Exponential"))
@@ -85,14 +41,7 @@ all.simulated.data =
 data.all.with.lag = suppressMessages(get_all_methods_lag(all.simulated.data, biomass.increase.threshold)) %>%
   rename(model = curve_id, method = lag_calculation_method)
 
-data.all.with.lag$method <- factor(data.all.with.lag$method, levels = c(
-  "biomass increase",
-  "max growth acceleration",
-  "tangent to max growth point",
-  "tangent to max growth line",
-  "par. fitting to logistic model",
-  "par. fitting to baranyi model"
-))
+data.all.with.lag$method <- factor(data.all.with.lag$method, levels = method.labels)
 
 
 
@@ -144,20 +93,11 @@ no.lag = read.delim(sprintf("%sBY_a_lag_data.txt", EXPERIMENTAL.DATA.PATH)) %>%
   select(time = time_h, biomass) %>%
   mutate(curve_id = "No-Lag")
 
-
-
 all.data.fig2 = rbind(fresh, atypical, no.lag)
 all.data.fig2.with.lag = suppressMessages(get_all_methods_lag(all.data.fig2, biomass.increase.threshold)) %>%
   rename(method = lag_calculation_method, type = curve_id)
 
-all.data.fig2.with.lag$method <- factor(all.data.fig2.with.lag$method, levels = c(
-  "biomass increase",
-  "max growth acceleration",
-  "tangent to max growth point",
-  "tangent to max growth line",
-  "par. fitting to logistic model",
-  "par. fitting to baranyi model"
-))
+all.data.fig2.with.lag$method <- factor(all.data.fig2.with.lag$method, levels = method.labels)
 
 
 all.data.fig2.with.lag$type <- factor(all.data.fig2.with.lag$type, levels = c(
@@ -197,10 +137,6 @@ ggsave(fig2,
 
 
 
-
-
-
-
 # Supplementary Figures
 # S1 Fitting models to nolag data
 nolag.data.av = no.lag %>% 
@@ -214,7 +150,7 @@ nolag.data.av = no.lag %>%
 pars = get_def_pars()
 pars$model <- "baranyi"
 calc_lag(nolag.data.av, method = "parameter fitting to a model", pars) %>% distinct(curve_id, lag)
-nlsmod = Fit.To.Baranyi(nolag.data.av, ### TU NIE DZIALA ### 
+nlsmod = Fit.To.Baranyi(nolag.data.av,
                         max_iter = 100, 
                         init_lag = NULL, 
                         init_gr_rate = NULL)
@@ -262,14 +198,12 @@ g=ggplot(nolag.data.av %>%
   geom_line(size = 1) +
   theme_bw() +
   facet_grid(scale ~ ., scales = "free") +
-  #scale_linetype_manual(values = c("real CFU" = "solid", "Baranyi" = "dashed", logistic = "twodash")) +
   scale_linetype_manual(values = c("real CFU" = "solid", "Baranyi" = "dashed", logistic = "dashed")) +
   scale_color_manual(values = c("real CFU" = "darkgray", "Baranyi" = "darkgreen", logistic = "darkviolet")) +
   scale_alpha_manual(values = c("real CFU" = 1, "Baranyi" = 0.75, logistic = 0.75)) +
   xlab("Time [h]") + 
   ylab("")
 g
-#scale_y_log10()
 ggsave(sprintf("%sS1.png", OUTPUT_FIGS_PATH), g, width = 16, height=8, units = "cm")
 
 
@@ -316,8 +250,6 @@ ggsave(supfig2,
        units = "mm", width = 200, height = 150, dpi = 300)
 
 
-
-
 # S2b
 real.data = curves11 %>%
   select(time = time_hours, biomass = biomass_ml, curve_id)
@@ -328,9 +260,6 @@ real.data.smooth.with.lag =  suppressMessages(get_all_methods_lag(data.smooth, b
 
 data.short = cut_the_data(real.data,12)
 real.data.short.with.lag = suppressMessages(get_all_methods_lag(data.short, biomass.increase.threshold))
-
-data.not.blank.corrected = real.data %>% mutate(biomass = biomass + blank.constant)
-real.data.not.blank.corrected.with.lag = suppressMessages(get_all_methods_lag(data.not.blank.corrected, biomass.increase.threshold))
 
 lag.data =
   rbind(real.data.smooth.with.lag %>%
@@ -353,7 +282,7 @@ lag.data =
 g=ggplot(lag.data %>%
            rename(`Data type` = data.type),
          aes(y = lag, x = curve_id)) +
-  geom_jitter(aes(col = Method, height = 0), height = 0, size = 2.5) +
+  geom_jitter(aes(col = Method), height = 0, size = 2.5) +
   geom_boxplot(alpha = 0.2, outliers = FALSE) +
   facet_grid(. ~`Data type`) +
   Get.Theme() +

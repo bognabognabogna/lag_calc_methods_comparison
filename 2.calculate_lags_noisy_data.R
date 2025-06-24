@@ -1,33 +1,13 @@
-rm(list = ls())
-set.seed(1)
-library(ggplot2)
-library(data.table)
-library(dplyr)
-library(miLAG)
-rm(list = ls())
+source("~/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/code/lag_calc_methods_comparison/0.config.R")
 
-# Monika:
-#THIS_PROJECT_PATH = "C:/Users/monik/Documents/_PROJEKTY i LAB/_2024 - LAG - PART 2/"
-#OUTPUT_FIGS_PATH =sprintf("%soutput/2024.08.28 - figs and data/", THIS_PROJECT_PATH) 
-#source(sprintf("%scode/in_silico analysis/lags_helper.R", THIS_PROJECT_PATH))
-# Bogna
-THIS_PROJECT_PATH = "/Users/bsmug/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/" 
-OUTPUT_FIGS_PATH =sprintf("%soutput/Figures_2025_01_27/", THIS_PROJECT_PATH) 
-source(sprintf("%scode/in_silico analysis/2024-09/lags_helper.R", THIS_PROJECT_PATH))
-# debug: 
-#source("~/Library/CloudStorage/OneDrive-UniwersytetJagielloński/Lags_part2/code/in_silico analysis/2024-02/milags_functions.R")
-
-dir.create(OUTPUT_FIGS_PATH)
 logistic.model.params = readRDS(paste0(OUTPUT_FIGS_PATH,"logistic.model.params.rds"))
 baranyi.model.params = readRDS(paste0(OUTPUT_FIGS_PATH,"baranyi.model.params.rds"))
 
 ########################### simulated data with noise ################
 time.intervals = c(0.1, 0.5, 1)
 Num.obs = 500
-sd_range = c(0.01, 0.1, 1) #c(0,0.1,1,10) #c(0.0, 10, 10^2, 10^3)
-biomass.increase.threshold = 10^3
+sd_range = c(0.01, 0.1, 1) 
 time.interval = 0.1
-Max.Time = 24
 times = seq(0,Max.Time,time.interval)
 
 
@@ -39,11 +19,6 @@ K = logistic.model.params$K
 N0 = logistic.model.params$N0
 # in case simulated data go below 0 change them to MIN.BIOMASS
 MIN.BIOMASS = 1
-# baranyi params
-growth.rate.baranyi = baranyi.model.params$mumax
-LOG10Nmax = baranyi.model.params$LOG10Nmax
-LOG10N0 = baranyi.model.params$LOG10N0
-real.lag.baranyi = baranyi.model.params$lag
 
 
 
@@ -75,39 +50,6 @@ ggplot(logistic.simulated.data.example %>% filter(time <= 4), aes(x = time, y = 
   xlab("Time [h]")
 dev.off()
 
-
-
-baranyi.simulated.data.basic = baranyi.simulated.data.basic = data.frame(time = times,
-                                          biomass = Baranyi.Solution(times, LOG10Nmax, growth.rate.baranyi, LOG10N0, real.lag.baranyi))
-
-baranyi.simulated.data.example.1 = baranyi.simulated.data.basic %>%
-  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[1]*N0))%>%
-  mutate(sd = sd_range[1],real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
-baranyi.simulated.data.example.2 = baranyi.simulated.data.basic %>%
-  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[3]*N0))%>%
-  mutate(sd = sd_range[3], real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
-baranyi.simulated.data.example.3 = baranyi.simulated.data.basic %>%
-  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[4]*N0))%>%
-  mutate(sd = sd_range[4],  real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
-baranyi.simulated.data.example = rbind(baranyi.simulated.data.example.1,
-                                        rbind(baranyi.simulated.data.example.2,
-                                              baranyi.simulated.data.example.3)) %>%
-  rowwise() %>%
-  mutate(sd = paste0("sd = ", sd))
-
-write.csv(baranyi.simulated.data.example %>%
-            select(time, biomass, curve_idd = sd), 
-          file = sprintf("%sbaranyi.ssimulated_data.with.noise.csv", OUTPUT_FIGS_PATH), row.names = FALSE)
-
-
-jpeg(sprintf("%sFig_example_noisy_curve_baranyi.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
-ggplot(baranyi.simulated.data.example, aes(x = time, y = biomass)) +
-  geom_point() + geom_line() +
-  facet_grid(.~sd) + 
-  theme_bw() +
-  xlab("time [h]") +
-  ylab("biomass [CFU/mL]") 
-dev.off()
 
 ################## LOGISTIC MODEL SIMULATIONS ###########################
 growth.rates.logistic= growth.rate.logistic*c(0.5, 1, 2)
@@ -212,15 +154,54 @@ saveRDS(logistic.curves.4, paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varyin
 
 
 # BARANYI
+
+# baranyi params
 growth.rate.baranyi = baranyi.model.params$mumax
 LOG10Nmax = baranyi.model.params$LOG10Nmax
 LOG10N0 = baranyi.model.params$LOG10N0
 real.lag.baranyi = baranyi.model.params$lag
 
 
-
 growth.rates.baranyi = growth.rate.baranyi*c(0.5, 1,2)
 real.lags.baranyi = c(0, real.lag.baranyi, 2.5)
+
+baranyi.simulated.data.basic = baranyi.simulated.data.basic = data.frame(time = times,
+                                                                         biomass = Baranyi.Solution(times, LOG10Nmax, growth.rate.baranyi, LOG10N0, real.lag.baranyi))
+
+baranyi.simulated.data.example.1 = baranyi.simulated.data.basic %>%
+  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[1]*N0))%>%
+  mutate(sd = sd_range[1],real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
+baranyi.simulated.data.example.2 = baranyi.simulated.data.basic %>%
+  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[3]*N0))%>%
+  mutate(sd = sd_range[3], real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
+baranyi.simulated.data.example.3 = baranyi.simulated.data.basic %>%
+  mutate(biomass = biomass + rnorm(n = length(times), mean = 0, sd = sd_range[4]*N0))%>%
+  mutate(sd = sd_range[4],  real.lag = real.lag.baranyi, growth.rate = growth.rate.baranyi)
+baranyi.simulated.data.example = rbind(baranyi.simulated.data.example.1,
+                                       rbind(baranyi.simulated.data.example.2,
+                                             baranyi.simulated.data.example.3)) %>%
+  rowwise() %>%
+  mutate(sd = paste0("sd = ", sd))
+
+write.csv(baranyi.simulated.data.example %>%
+            select(time, biomass, curve_idd = sd), 
+          file = sprintf("%sbaranyi.ssimulated_data.with.noise.csv", OUTPUT_FIGS_PATH), row.names = FALSE)
+
+
+jpeg(sprintf("%sFig_example_noisy_curve_baranyi.png", OUTPUT_FIGS_PATH), width = 60, height=30, units = "cm", res = 600)
+ggplot(baranyi.simulated.data.example, aes(x = time, y = biomass)) +
+  geom_point() + geom_line() +
+  facet_grid(.~sd) + 
+  theme_bw() +
+  xlab("time [h]") +
+  ylab("biomass [CFU/mL]") 
+dev.off()
+
+
+
+
+
+
 
 
 

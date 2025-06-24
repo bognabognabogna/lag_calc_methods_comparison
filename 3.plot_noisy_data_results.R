@@ -1,18 +1,18 @@
-
+methods_labeller = c("biomass increase" = "Biomass Increase",
+                     "max growth acceleration" = "Max Growth\nAcceleration",
+                     "tangent to max growth point" = "Tangent\nto the point",
+                     "tangent to max growth line" = "Tangent\nto the line",
+                     "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
+                     "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")
 sd_range = c(0.01, 0.1, 1)
+
 # Figure 3 PLOT
-METHODS = c("biomass increase",            
-            "max growth acceleration",
-            "tangent to max growth point",
-            "tangent to max growth line",   
-            "par. fitting to baranyi model", 
-            "par. fitting to logistic model")
 ## GROWTH
 growth = readRDS(paste0(OUTPUT_FIGS_PATH,"all.lag.data.logistic.varying.growth.rate.rds")) %>%
   mutate(real.minus.estimated.lag = real.lag - lag)
 growth$sd = as.factor(growth$sd)
 growth$lag_calculation_method = as.factor(growth$lag_calculation_method)
-growth$lag_calculation_method = ordered(growth$lag_calculation_method, levels = METHODS)
+growth$lag_calculation_method = ordered(growth$lag_calculation_method, levels = method.labels)
 growth <- growth %>% mutate(GR = paste0("GR = ", round(growth.rate, 2)))
 
 growth.stats = growth %>%
@@ -21,7 +21,7 @@ growth.stats = growth %>%
     mean.lag = mean(lag, na.rm = TRUE),
     n = n_distinct(curve_id),
     bias = mean.lag - unique(real.lag),
-    # vaiance i.e. precision
+    # variance i.e. precision
     var = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
   tidyr::gather(key = "Measure", value = "value", bias, var)
     
@@ -32,12 +32,7 @@ plot_growth_stats_bar =
   geom_col(stat = "identity", position = "dodge") +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(GR),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "fixed") +
   theme_bw()+
   xlab("Noise [sd]")+
@@ -58,12 +53,7 @@ plot_growth_stats =
   geom_hline(aes(yintercept = 0), col = "black", linetype = "dashed") +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(Measure),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "free") +
   theme_bw()+
   scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]", trans = 'log10') +
@@ -95,12 +85,7 @@ plot_growth =
     alpha = 0.3)+
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(GR),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "free_y") +
   theme_bw()+
   stat_summary(geom = "point",
@@ -131,7 +116,7 @@ interval =
 interval$sd = as.factor(interval$sd)
 interval$lag_calculation_method = as.factor(interval$lag_calculation_method)
 levels(interval$lag_calculation_method)
-interval$lag_calculation_method = ordered(interval$lag_calculation_method, levels = METHODS)
+interval$lag_calculation_method = ordered(interval$lag_calculation_method, levels = method.labels)
 
 interval.stats = interval %>%
   group_by(sd, lag_calculation_method, growth.rate, time.interval, real.lag) %>%
@@ -151,15 +136,8 @@ plot_interval_stats_bar =
   geom_col(stat = "identity", position = "dodge") +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(time.interval),
-             labeller = labeller(time.interval = c("0.1" = "TI 0.1h", 
-                                                                                    "0.5" = "TI 0.5h", 
-                                                                                    "1" = "TI 1h"),
-                                                                  lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(time.interval = c("0.1" = "TI 0.1h", "0.5" = "TI 0.5h","1" = "TI 1h"),
+                                lag_calculation_method = methods_labeller),
              scales = "fixed") +
   theme_bw()+
   xlab("Noise [sd]")+
@@ -183,12 +161,7 @@ plot_interval_stats =
   geom_line() +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(Measure),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "free") +
   theme_bw()+
   scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]", trans = 'log10') +
@@ -225,12 +198,7 @@ plot_interval =
              labeller = labeller(time.interval = c("0.1" = "TI 0.1h", 
                                                    "0.5" = "TI 0.5h", 
                                                    "1" = "TI 1h"),
-                                 lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                              "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+                                 lag_calculation_method = methods_labeller),
              scales = "free_y")+
   theme_bw()+
   stat_summary(geom = "point",
@@ -263,7 +231,7 @@ lagvary =
 lagvary$sd = as.factor(lagvary$sd)
 lagvary$lag_calculation_method = as.factor(lagvary$lag_calculation_method)
 levels(lagvary$lag_calculation_method)
-lagvary$lag_calculation_method = ordered(lagvary$lag_calculation_method, levels = METHODS)
+lagvary$lag_calculation_method = ordered(lagvary$lag_calculation_method, levels = method.labels)
 
 
 lagvary.stats = lagvary %>%
@@ -283,12 +251,7 @@ plot_lagvary_stats_bar =
   geom_col(stat = "identity", position = "dodge") +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(RL),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "fixed") +
   theme_bw()+
   scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]") +
@@ -309,12 +272,7 @@ plot_lagvary_stats =
   geom_line() +
   facet_grid(cols = vars(lag_calculation_method),
              rows = vars(Measure),
-             labeller = labeller(lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                                            "max growth acceleration" = "Max Growth\nAcceleration",
-                                                            "tangent to max growth point" = "Tangent\nto the point",
-                                                            "tangent to max growth line" = "Tangent\nto the line",
-                                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                                            "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model")),
+             labeller = labeller(lag_calculation_method = methods_labeller),
              scales = "free") +
   theme_bw()+
   scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]", trans = 'log10') +
@@ -347,12 +305,7 @@ plot_lagvary =
                RL = c("0.009" = "Lag 0.009h", 
                       "1" = "Lag 1h", 
                       "2.5" = "Lag 2.5h"),
-               lag_calculation_method = c("biomass increase" = "Biomass Increase",
-                                          "max growth acceleration" = "Max Growth\nAcceleration",
-                                          "tangent to max growth point" = "Tangent\nto the point",
-                                          "tangent to max growth line" = "Tangent\nto the line",
-                                            "par. fitting to baranyi model" = "Parameter Fitting\nto the Baranyi model",
-                                          "par. fitting to logistic model" = "Parameter Fitting\nto the logistic model"))) +
+               lag_calculation_method = methods_labeller)) +
   theme_bw()+
   stat_summary(geom = "point",
                fun = "median",
