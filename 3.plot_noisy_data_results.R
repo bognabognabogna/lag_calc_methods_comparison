@@ -20,28 +20,11 @@ growth.stats = growth %>%
   summarise(
     mean.lag = mean(lag, na.rm = TRUE),
     n = n_distinct(curve_id),
-    bias = mean.lag - unique(real.lag),
+    `bias [h]` = mean.lag - unique(real.lag),
     # variance i.e. precision
-    var = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
-  tidyr::gather(key = "Measure", value = "value", bias, var)
+    `var [h^2]` = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
+  tidyr::gather(key = "Measure", value = "value",  `bias [h]`, `var [h^2]`)
     
-plot_growth_stats_bar = 
-  ggplot(growth.stats,
-         aes(x = sd, y = value, fill = Measure))+
-  geom_hline(yintercept = 0)+
-  geom_col(stat = "identity", position = "dodge") +
-  facet_grid(cols = vars(lag_calculation_method),
-             rows = vars(GR),
-             labeller = labeller(lag_calculation_method = methods_labeller),
-             scales = "fixed") +
-  theme_bw()+
-  xlab("Noise [sd]")+
-  ylab(" ")+
-  #theme(legend.position = "none")+
-  theme(aspect.ratio = 1)+
-  scale_fill_manual(values = c("darkblue", "gray40"))+
-  ggtitle("B. Growth Rate")
-
 
 plot_growth_stats = 
   ggplot(growth.stats %>% 
@@ -60,8 +43,7 @@ plot_growth_stats =
   ylab(" ")+
   #theme(legend.position = "none")+
   theme(aspect.ratio = 1, legend.position = "bottom")+
-  scale_color_manual(values = c("GR = 0.71" = "lightblue", "GR = 1.42" = "blue", "GR = 2.83" = "darkblue"), name = "Growth rate")+
-  ggtitle("B. Growth Rate")
+  scale_color_manual(values = c("GR = 0.71" = "lightblue", "GR = 1.42" = "blue", "GR = 2.83" = "darkblue"), name = "Growth rate")
 
 plot_growth_stats
 ggsave(plot_growth_stats,
@@ -126,26 +108,8 @@ interval.stats = interval %>%
     `bias [h]` = mean.lag - unique(real.lag),
     # vaiance i.e. precision
     `var [h^2]` = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
-  mutate(sqrt.var = sqrt(var)) %>%
   tidyr::gather(key = "Measure", value = "value", `bias [h]`, `var [h^2]`)
 
-plot_interval_stats_bar = 
-  ggplot(interval.stats,
-         aes(x = sd, y = value, fill = Measure))+
-  geom_hline(yintercept = 0)+
-  geom_col(stat = "identity", position = "dodge") +
-  facet_grid(cols = vars(lag_calculation_method),
-             rows = vars(time.interval),
-             labeller = labeller(time.interval = c("0.1" = "TI 0.1h", "0.5" = "TI 0.5h","1" = "TI 1h"),
-                                lag_calculation_method = methods_labeller),
-             scales = "fixed") +
-  theme_bw()+
-  xlab("Noise [sd]")+
-  ylab(" ")+
-  #theme(legend.position = "none")+
-  theme(aspect.ratio = 1)+
-  scale_fill_manual(values = c("darkblue", "gray40"))+
-  ggtitle("A. Measurement frequency")
 
 
 plot_interval_stats = 
@@ -169,8 +133,7 @@ plot_interval_stats =
   #theme(legend.position = "none")+
   #coord_cartesian(ylim = c(0, 1.5)) +
   theme(aspect.ratio = 1, legend.position = "bottom")+
-  scale_color_manual(values = c("0.1h" = "darkblue", "0.5h" = "blue", "1h" = "lightblue"), name = "Measurement interval")+
-  ggtitle("A. Measurement frequency")
+  scale_color_manual(values = c("0.1h" = "darkblue", "0.5h" = "blue", "1h" = "lightblue"), name = "Measurement interval")
 
 
 plot_interval_stats
@@ -239,27 +202,10 @@ lagvary.stats = lagvary %>%
   summarise(
     mean.lag = mean(lag, na.rm = TRUE),
     n = n_distinct(curve_id),
-    bias = mean.lag - unique(real.lag),
+    `bias [h]` = mean.lag - unique(real.lag),
     # vaiance i.e. precision
-    var = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
-  tidyr::gather(key = "Measure", value = "value", bias, var)
-
-plot_lagvary_stats_bar = 
-  ggplot(lagvary.stats,
-         aes(x = sd, y = value, fill = Measure))+
-  geom_hline(yintercept = 0)+
-  geom_col(stat = "identity", position = "dodge") +
-  facet_grid(cols = vars(lag_calculation_method),
-             rows = vars(RL),
-             labeller = labeller(lag_calculation_method = methods_labeller),
-             scales = "fixed") +
-  theme_bw()+
-  scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]") +
-  ylab(" ")+
-  #theme(legend.position = "none")+
-  theme(aspect.ratio = 1)+
-  scale_fill_manual(values = c("darkblue", "gray40"))+
-  ggtitle("Varying lag durations")
+    `var [h^2]` = mean((lag - mean.lag)^2, na.rm = TRUE)) %>%
+  tidyr::gather(key = "Measure", value = "value", `bias [h]`, `var [h^2]`)
 
 
 plot_lagvary_stats = 
@@ -278,8 +224,7 @@ plot_lagvary_stats =
   scale_x_continuous(breaks=sd_range, labels = sd_range, name = "Noise [sd]", trans = 'log10') +
   ylab(" ")+
   theme(aspect.ratio = 1, legend.position = "bottom")+
-  scale_color_manual(values = c("0.25" = "darkblue", "1" = "blue", "2.5" = "lightblue"), name = "Real Lag Duration")+
-  ggtitle("C. Varying lag durations")
+  scale_color_manual(values = c("0.25" = "darkblue", "1" = "blue", "2.5" = "lightblue"), name = "Real Lag Duration")
 plot_lagvary_stats
 
 ggsave(plot_lagvary_stats,
@@ -323,3 +268,8 @@ plot_lagvary
 ggsave(plot_lagvary,
        filename = sprintf("%ssup.fig4.jpg", OUTPUT_FIGS_PATH),
        units = "mm", width = 250, height = 140, dpi = 300)
+
+
+fig3 = plot_interval_stats / plot_growth_stats / plot_lagvary_stats
+fig3 = fig3 +  plot_annotation(tag_levels = 'A') +  theme(plot.title = element_text(size = 20))
+ggsave(filename = sprintf("%sfig3.jpg", OUTPUT_FIGS_PATH), fig3, width = 12, height = 13, dpi = 600)
